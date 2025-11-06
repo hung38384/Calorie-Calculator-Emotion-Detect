@@ -3,9 +3,9 @@ import Head from 'next/head'
 import GoogleAnalytics from "@/components/analyse";
 
 const CustomHead = () => {
-    const siteTitle = 'AI Calorie Calculator | Food Recognition'
+    const siteTitle = 'Trình tính Calo AI | Nhận diện món ăn'
 
-    const description = 'Utilize AI technology to recognize food images and generate calorie statistics, helping you better manage your dietary health.'
+    const description = 'Sử dụng AI để nhận diện hình ảnh món ăn và ước tính calo, hỗ trợ phụ huynh quản lý dinh dưỡng cho trẻ.'
     const pageImage = 'https://aicc.gptdevelopment.online/cor.webp';
     const keywords = 'AI, food recognition, calorie counting, calorie statistics， Calorie Calculator， AI Calorie Calculator， Do Calorie Calculator， '
 
@@ -26,7 +26,7 @@ const CustomHead = () => {
             <meta property="og:description" content={description}/>
             <meta property="og:site_name" content={siteTitle}/>
             <meta property="og:url" content="none"/>
-            <meta property="og:locale" content="en_US"/>
+            <meta property="og:locale" content="vi_VN"/>
             <meta property="og:image" content={pageImage}/>
             <meta property="og:image:secure_url" content={pageImage}/>
             <meta property="og:type" content="website"/>
@@ -49,8 +49,11 @@ export const Header = () => {
                 <div className="container mx-auto flex justify-between items-center p-5">
                     {/* Logo Section */}
                     <div className="flex items-center">
-                        <img src="/health.svg" alt="Logo" className="mr-3 h-6 sm:h-9"/>
-                        <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">Calorie Calculator</span>
+                        <img src="/health.svg" alt="Logo" className="mr-3 h-8 sm:h-10" aria-hidden="false" role="img"/>
+                        <div className="flex flex-col">
+                            <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">Trình tính Calo AI</span>
+                            <small className="text-xs text-gray-500">Nhận diện món ăn & gợi ý dinh dưỡng</small>
+                        </div>
                     </div>
 
                     {/* Navigation Menu */}

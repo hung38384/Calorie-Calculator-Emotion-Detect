@@ -1,4 +1,4 @@
-export const runtime = 'experimental-edge';
+export const runtime = 'edge';
 
 export const config = {
     api: {
@@ -9,14 +9,14 @@ export const config = {
 // Function to detect food and calories from a base64 encoded image
 async function detectFoodAndCalories(base64Image) {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
-    const model = 'gemini-2.0-flash'; // Specified model for detection
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+    const model = 'gemini-2.0-flash';
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
 
     // Extract MIME type and pure base64 data from the image string
     const match = base64Image.match(/^data:(image\/\w+);base64,(.*)$/);
     if (!match) {
-        throw new Error('Invalid image data format.');
+        throw new Error('Định dạng dữ liệu hình ảnh không hợp lệ.');
     }
 
     const mimeType = match[1];
@@ -27,7 +27,7 @@ async function detectFoodAndCalories(base64Image) {
             {
                 parts: [
                     {
-                        text: 'Identify the food in this picture and estimate the calories. Please make sure to return the content in this structure as JSON. {"items": ["ice", "apple"], "total_calories": xx} Just return JSON, do not include other content.'
+                        text: 'Hãy nhận diện món ăn trong hình và ước tính lượng calories. Vui lòng trả về nội dung theo cấu trúc JSON như sau. {"items": ["món ăn 1", "món ăn 2"], "total_calories": xx} Chỉ trả về JSON, không bao gồm nội dung khác.'
                     },
                     {
                         inline_data: {
@@ -59,7 +59,7 @@ async function detectFoodAndCalories(base64Image) {
         const match = text.match(regex);
 
         if (!match) {
-            throw new Error('No valid JSON found in the response.');
+            throw new Error('Không tìm thấy JSON hợp lệ trong phản hồi.');
         }
 
         const jsonStr = match[0];

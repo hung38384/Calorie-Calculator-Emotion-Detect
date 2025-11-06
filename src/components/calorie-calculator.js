@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LoadingSpinner from "@/components/spinner";
 import {AlertModal} from "@/components/model/alert";
+import { aggregateInsights } from "@/utils/foodInsights";
+import SymptomLogger from "@/components/SymptomLogger";
+import GrowthTracker from "@/components/GrowthTracker";
 
 // Defines the main component for the calorie calculator page
 export const CalorieCalculatorPage = () => {
@@ -11,6 +14,27 @@ export const CalorieCalculatorPage = () => {
     const [isLoading, setLoading] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
     const [alertMessage, setAlertMessage] = useState('');
+    const [alertType, setAlertType] = useState('error');
+    const [showGrowthTracker, setShowGrowthTracker] = useState(false);
+    const [mealHistory, setMealHistory] = useState([]);
+
+    // Load/save meal history from localStorage
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem('mealHistory');
+            if (raw) setMealHistory(JSON.parse(raw));
+        } catch (e) {
+            console.warn('Failed to load meal history', e);
+        }
+    }, []);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('mealHistory', JSON.stringify(mealHistory));
+        } catch (e) {
+            console.warn('Failed to save meal history', e);
+        }
+    }, [mealHistory]);
 
 
     const handleImageUpload = async (event) => {
@@ -36,12 +60,17 @@ export const CalorieCalculatorPage = () => {
     };
 
     // Component for uploading images
-    const ImageUpload = ({ onUpload, uploadedImage }) => {
+    const ImageUpload = ({ onUpload, uploadedImage, onRemove }) => {
         return (
-            <div className="text-center p-4">
+            <div className="text-center p-4 relative">
                 <input id="upload" type="file" accept="image/*" onChange={onUpload} className="hidden" />
-                <div className="image-container h-[380px] md:h-[200px] lg:h-[380px] w-full bg-white rounded-lg overflow-hidden">
-                    {uploadedImage && <img src={uploadedImage} alt="Uploaded Food" className="w-full h-full object-cover" />}
+                <div className="image-container h-[380px] md:h-[200px] lg:h-[380px] w-full bg-white rounded-lg overflow-hidden relative">
+                    {uploadedImage && (
+                        <>
+                            <img src={uploadedImage} alt="Uploaded Food" className="w-full h-full object-cover" />
+                            <button onClick={onRemove} aria-label="Xóa ảnh" className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:bg-red-600">×</button>
+                        </>
+                    )}
                 </div>
             </div>
         );
@@ -63,8 +92,9 @@ export const CalorieCalculatorPage = () => {
                     setFoodItems(data.items);
                     setTotalCalories(data.count);
                 } else {
+                    setAlertType('error');
                     setShowAlert(true);
-                    setAlertMessage(data.message);
+                    setAlertMessage(data.message || 'Lỗi khi phân tích ảnh.');
                 }
                 setLoading(false);
             })
@@ -72,8 +102,9 @@ export const CalorieCalculatorPage = () => {
                 console.error('Error:', error);
                 // Show AlertModal on error
                 setLoading(false);
+                setAlertType('error');
                 setShowAlert(true);
-                setAlertMessage('Failed to analyze the image. Please try again.');
+                setAlertMessage('Không thể phân tích ảnh. Vui lòng thử lại.');
             })
             .finally(() => {
                 setLoading(false);
@@ -82,6 +113,35 @@ export const CalorieCalculatorPage = () => {
 
     // Closes the alert modal
     const closeAlertModal = () => setShowAlert(false);
+
+    const handleRemoveImage = () => {
+        setUploadedImage(null);
+        setFoodItems([]);
+        setTotalCalories(0);
+    };
+
+    // Save current detected meal to history
+    const saveMeal = () => {
+        if (!foodItems || foodItems.length === 0) return;
+        const entry = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            items: foodItems,
+            calories: totalCalories
+        };
+        setMealHistory(prev => [entry, ...prev]);
+        setAlertType('success');
+        setShowAlert(true);
+        setAlertMessage('Bữa ăn đã được lưu vào lịch sử.');
+    };
+
+    const deleteMeal = (id) => {
+        setMealHistory(prev => prev.filter(m => m.id !== id));
+    };
+
+    const clearMeals = () => {
+        setMealHistory([]);
+    };
 
     // Component displaying the result of food detection
     const FoodDetection = () => {
@@ -95,24 +155,53 @@ export const CalorieCalculatorPage = () => {
 
         return (
             <div className="md:flex-1 h-auto flex flex-col justify-between bg-base-100 rounded-box shadow">
-                <div className="p-4">
-                    <h2 className="text-xl md:text-2xl font-bold text-center mb-4 text-gray-700">Detected Food Items</h2>
-                    <div className="flex flex-wrap gap-2 justify-center items-center">
-                        {foodItems.map((item, index) => (
-                            <span key={index} className="badge badge-primary badge-outline p-4 text-sm md:text-base">
-                                {item}
-                            </span>
-                        ))}
+                    <div className="p-4">
+                        <h2 className="text-xl md:text-2xl font-bold text-center mb-4 text-gray-700">Món đã nhận diện</h2>
+                        <div className="flex flex-wrap gap-2 justify-center items-center">
+                            {foodItems.map((item, index) => (
+                                <span key={index} className="badge badge-info badge-outline p-3 text-sm md:text-base">
+                                    {item}
+                                </span>
+                            ))}
+                        </div>
                     </div>
-                </div>
-                <div className="divider divider-horizontal"></div>
-                <div className="py-4 px-4 text-center">
-                    <h3 className="text-lg md:text-xl font-semibold text-gray-700">Tổng Calories:</h3>
-                    <p className="text-2xl font-bold text-blue-600">{totalCalories} cal</p>
-                </div>
+                    <div className="divider divider-horizontal"></div>
+                    <div className="py-4 px-4 text-center">
+                        <h3 className="text-lg md:text-xl font-semibold text-gray-700">Tổng Calories:</h3>
+                        <p className="text-2xl font-bold text-blue-600">{totalCalories} cal</p>
+
+                        <div className="mt-4 text-left">
+                            <h4 className="font-semibold">Gợi ý cho trẻ rối loạn tiêu hóa</h4>
+                            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {aggregateInsights(foodItems).map((f, i) => (
+                                    <div key={i} className="p-3 border rounded mb-2 bg-white shadow-sm">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div>
+                                                <div className="font-medium text-sm text-gray-800">{f.name}</div>
+                                                <div className="text-sm text-gray-600 mt-1">{f.insight?.advice}</div>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                {(f.insight?.flags || []).map((flag, idx) => (
+                                                    <span key={idx} className="badge badge-ghost text-xs mt-1">{flag}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex justify-center gap-3">
+                            <button className="btn btn-success" onClick={saveMeal}>Lưu bữa ăn</button>
+                            <button className="btn btn-outline" onClick={() => { setFoodItems([]); setTotalCalories(0); }}>Xóa kết quả</button>
+                        </div>
+                    </div>
             </div>
         );
     };
+
+    // Symptom logger toggle
+    const [showLogger, setShowLogger] = useState(false);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen px-2">
@@ -132,10 +221,19 @@ export const CalorieCalculatorPage = () => {
                     Đăng tải hình ảnh món ăn
                 </label>
 
+                <div className="flex justify-end gap-4 mb-4">
+                    <button className="btn btn-outline" onClick={() => setShowGrowthTracker(!showGrowthTracker)}>
+                        {showGrowthTracker ? 'Đóng theo dõi' : 'Theo dõi tăng trưởng'}
+                    </button>
+                    <button className="btn btn-outline" onClick={() => setShowLogger(!showLogger)}>
+                        {showLogger ? 'Đóng nhật ký' : 'Ghi triệu chứng'}
+                    </button>
+                </div>
+
                 <div className="flex flex-col md:flex-row gap-4 items-start">
                     <div className="flex-1">
                         <div className="image-upload-area border-2 border-dashed h-[380px] md:h-[200px] lg:h-[380px] border-gray-300 rounded-lg flex justify-center items-center relative text-center bg-white">
-                            <ImageUpload onUpload={handleImageUpload} uploadedImage={uploadedImage} />
+                            <ImageUpload onUpload={handleImageUpload} uploadedImage={uploadedImage} onRemove={handleRemoveImage} />
                             {!uploadedImage && (
                                 <div className="absolute inset-0 flex flex-col justify-center items-center text-gray-500">
                                     <p>Không có ảnh nào được tải lên</p>
@@ -151,9 +249,40 @@ export const CalorieCalculatorPage = () => {
                 </div>
             </div>
 
+            {showLogger && <SymptomLogger />}
+            {showGrowthTracker && <GrowthTracker />}
+
+            {/* Recent meals */}
+            {mealHistory.length > 0 && (
+                <div className="container max-w-4xl p-5 bg-base-100 shadow-xl rounded-lg mt-6">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-lg font-semibold">Lịch sử bữa ăn gần đây</h3>
+                        <div className="flex gap-2">
+                            <button className="btn btn-sm btn-outline" onClick={clearMeals}>Xóa tất cả</button>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {mealHistory.map(m => (
+                            <div key={m.id} className="p-3 border rounded bg-white shadow-sm">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="text-sm text-gray-600">{new Date(m.date).toLocaleString('vi-VN')}</div>
+                                        <div className="font-medium mt-1">{m.items.join(', ')}</div>
+                                        <div className="text-sm text-gray-700 mt-1">{m.calories} cal</div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <button className="btn btn-ghost btn-sm text-red-500" onClick={() => deleteMeal(m.id)}>Xóa</button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <FAQSection />
 
-            <AlertModal show={showAlert} onClose={closeAlertModal} type="error" message={alertMessage} />
+            <AlertModal show={showAlert} onClose={closeAlertModal} type={alertType} message={alertMessage} />
         </div>
     );
 };
