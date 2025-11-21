@@ -210,7 +210,7 @@ export const CalorieCalculatorPage = () => {
             )}
             <div className="alert alert-info bg-blue-100 shadow-lg max-w-4xl w-full mb-4">
                 <div>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span>Đây là một tool phân tích miễn phí. Giới hạn 2 lần thử. Nếu gặp lỗi, vui lòng thử lại.</span>
                 </div>
             </div>
