@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import LoadingSpinner from "@/components/spinner";
 import { AlertModal } from "@/components/model/alert";
 import { aggregateInsights } from "@/utils/foodInsights";
 import SymptomLogger from "@/components/SymptomLogger";
@@ -15,13 +14,18 @@ import {
     Info,
     ChevronDown,
     ChevronUp,
-    Utensils
+    Utensils,
+    AlertTriangle,
+    CheckCircle2,
+    Leaf,
+    Droplets
 } from "lucide-react";
 
 export const CalorieCalculatorPage = () => {
     const [uploadedImage, setUploadedImage] = useState(null);
     const [foodItems, setFoodItems] = useState([]);
     const [totalCalories, setTotalCalories] = useState(0);
+    const [digestiveAnalysis, setDigestiveAnalysis] = useState(null);
     const [isLoading, setLoading] = useState(false);
     const [showAlert, setShowAlert] = useState(false);
     const [alertMessage, setAlertMessage] = useState('');
@@ -111,6 +115,7 @@ export const CalorieCalculatorPage = () => {
                 if (data.success) {
                     setFoodItems(data.items);
                     setTotalCalories(data.count);
+                    setDigestiveAnalysis(data.digestive_analysis);
                 } else {
                     setAlertType('error');
                     setShowAlert(true);
@@ -132,6 +137,7 @@ export const CalorieCalculatorPage = () => {
         setUploadedImage(null);
         setFoodItems([]);
         setTotalCalories(0);
+        setDigestiveAnalysis(null);
     };
 
     const saveMeal = () => {
@@ -140,7 +146,8 @@ export const CalorieCalculatorPage = () => {
             id: Date.now(),
             date: new Date().toISOString(),
             items: foodItems,
-            calories: totalCalories
+            calories: totalCalories,
+            digestiveAnalysis
         };
         setMealHistory(prev => [entry, ...prev]);
         setAlertType('success');
@@ -157,6 +164,16 @@ export const CalorieCalculatorPage = () => {
     };
 
     const FoodDetection = () => {
+        if (isLoading) {
+            return (
+                <div className="card bg-base-100 shadow-lg h-full flex flex-col items-center justify-center p-8 text-center min-h-[300px]">
+                    <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
+                    <h3 className="text-xl font-semibold text-base-content/70">Đang phân tích món ăn...</h3>
+                    <p className="text-base-content/50 mt-2">AI đang kiểm tra thành phần và mức độ an toàn tiêu hóa</p>
+                </div>
+            );
+        }
+
         if (foodItems.length === 0) {
             return (
                 <div className="card bg-base-100 shadow-lg h-full flex flex-col items-center justify-center p-8 text-center min-h-[300px]">
@@ -164,7 +181,7 @@ export const CalorieCalculatorPage = () => {
                         <Utensils className="w-8 h-8 text-base-content/40" />
                     </div>
                     <h3 className="text-xl font-semibold text-base-content/70">Kết quả phân tích</h3>
-                    <p className="text-base-content/50 mt-2">Kết quả nhận diện món ăn và calo sẽ hiển thị tại đây</p>
+                    <p className="text-base-content/50 mt-2">Kết quả nhận diện và phân tích tiêu hóa sẽ hiển thị tại đây</p>
                 </div>
             );
         }
@@ -185,18 +202,70 @@ export const CalorieCalculatorPage = () => {
                         ))}
                     </div>
 
-                    <div className="stats shadow w-full bg-base-200 mb-6">
-                        <div className="stat place-items-center">
-                            <div className="stat-title">Tổng năng lượng</div>
-                            <div className="stat-value text-primary">{totalCalories}</div>
-                            <div className="stat-desc">Calories (ước tính)</div>
+                    {digestiveAnalysis && (
+                        <div className="w-full mb-6">
+                            <div className="stats shadow w-full bg-base-200 mb-4">
+                                <div className="stat place-items-center">
+                                    <div className="stat-title">Điểm tiêu hóa</div>
+                                    <div className={`stat-value ${digestiveAnalysis.digestibility_score >= 7 ? 'text-success' : digestiveAnalysis.digestibility_score >= 5 ? 'text-warning' : 'text-error'}`}>
+                                        {digestiveAnalysis.digestibility_score}/10
+                                    </div>
+                                    <div className="stat-desc">Dựa trên thành phần</div>
+                                </div>
+                                <div className="stat place-items-center">
+                                    <div className="stat-title">Calories</div>
+                                    <div className="stat-value text-secondary text-2xl">{totalCalories}</div>
+                                    <div className="stat-desc">kcal</div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 mb-4">
+                                <div className="p-3 bg-base-200 rounded-lg flex flex-col items-center text-center">
+                                    <span className="text-xs uppercase font-bold text-base-content/60 mb-1">FODMAP</span>
+                                    <span className={`badge ${digestiveAnalysis.fodmap_level === 'Low' ? 'badge-success' : 'badge-warning'}`}>
+                                        {digestiveAnalysis.fodmap_level}
+                                    </span>
+                                </div>
+                                <div className="p-3 bg-base-200 rounded-lg flex flex-col items-center text-center">
+                                    <span className="text-xs uppercase font-bold text-base-content/60 mb-1">Kết cấu</span>
+                                    <span className="font-semibold">{digestiveAnalysis.texture}</span>
+                                </div>
+                                <div className="p-3 bg-base-200 rounded-lg flex flex-col items-center text-center">
+                                    <span className="text-xs uppercase font-bold text-base-content/60 mb-1">Chất xơ</span>
+                                    <span className="font-semibold">{digestiveAnalysis.fiber_content}</span>
+                                </div>
+                                <div className="p-3 bg-base-200 rounded-lg flex flex-col items-center text-center">
+                                    <span className="text-xs uppercase font-bold text-base-content/60 mb-1">Dị ứng</span>
+                                    <div className="flex flex-wrap justify-center gap-1">
+                                        {digestiveAnalysis.allergens.length > 0 && digestiveAnalysis.allergens[0] !== 'None' ? (
+                                            digestiveAnalysis.allergens.map((a, i) => <span key={i} className="text-xs badge badge-xs badge-error badge-outline">{a}</span>)
+                                        ) : (
+                                            <span className="text-xs text-success font-medium">Không phát hiện</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {digestiveAnalysis.warnings && digestiveAnalysis.warnings.length > 0 && (
+                                <div className="alert alert-warning shadow-sm mb-4 text-sm py-2">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    <div className="flex flex-col items-start">
+                                        <span className="font-bold text-xs uppercase">Lưu ý:</span>
+                                        <ul className="list-disc list-inside">
+                                            {digestiveAnalysis.warnings.map((w, i) => (
+                                                <li key={i}>{w}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    </div>
+                    )}
 
                     <div className="bg-base-200/50 rounded-xl p-4 mb-6">
                         <h4 className="font-semibold flex items-center gap-2 mb-3 text-sm uppercase tracking-wide opacity-70">
                             <Info className="w-4 h-4" />
-                            Gợi ý dinh dưỡng
+                            Chi tiết thành phần
                         </h4>
                         <div className="space-y-3">
                             {aggregateInsights(foodItems).map((f, i) => (
@@ -220,7 +289,7 @@ export const CalorieCalculatorPage = () => {
                     </div>
 
                     <div className="card-actions justify-center mt-auto pt-4 border-t border-base-200">
-                        <button className="btn btn-outline btn-error gap-2" onClick={() => { setFoodItems([]); setTotalCalories(0); }}>
+                        <button className="btn btn-outline btn-error gap-2" onClick={() => { setFoodItems([]); setTotalCalories(0); setDigestiveAnalysis(null); }}>
                             <Trash2 className="w-4 h-4" /> Xóa kết quả
                         </button>
                         <button className="btn btn-success gap-2 text-white" onClick={saveMeal}>
@@ -234,8 +303,6 @@ export const CalorieCalculatorPage = () => {
 
     return (
         <div className="w-full max-w-5xl mx-auto pb-20">
-            {isLoading && <LoadingSpinner />}
-
             <div className="alert alert-info shadow-sm mb-8">
                 <Info className="w-5 h-5" />
                 <span>Đây là công cụ phân tích AI miễn phí. Kết quả chỉ mang tính tham khảo.</span>
@@ -243,9 +310,9 @@ export const CalorieCalculatorPage = () => {
 
             <div className="text-center mb-10">
                 <h1 className="text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                    Công cụ tính Calo AI
+                    Trợ lý Tiêu hóa AI
                 </h1>
-                <p className="text-base-content/70">Tải lên ảnh món ăn để nhận diện và tính toán dinh dưỡng</p>
+                <p className="text-base-content/70">Phân tích món ăn & theo dõi sức khỏe tiêu hóa cho trẻ</p>
             </div>
 
             <div className="flex justify-center gap-4 mb-8">
@@ -304,7 +371,14 @@ export const CalorieCalculatorPage = () => {
                                     <div className="font-bold text-lg mb-1 truncate" title={m.items.join(', ')}>
                                         {m.items.join(', ')}
                                     </div>
-                                    <div className="badge badge-primary badge-outline">{m.calories} cal</div>
+                                    <div className="flex gap-2 mt-1">
+                                        <div className="badge badge-primary badge-outline">{m.calories} cal</div>
+                                        {m.digestiveAnalysis && (
+                                            <div className={`badge ${m.digestiveAnalysis.digestibility_score >= 7 ? 'badge-success' : 'badge-warning'} badge-outline`}>
+                                                Score: {m.digestiveAnalysis.digestibility_score}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}

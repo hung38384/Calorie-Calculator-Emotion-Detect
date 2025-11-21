@@ -6,12 +6,11 @@ export const config = {
     },
 }
 
-// Function to detect food and calories from a base64 encoded image
-async function detectFoodAndCalories(base64Image) {
+// Function to detect food and digestive insights from a base64 encoded image
+async function detectFoodAndDigestiveInsights(base64Image) {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
-    const model = 'gemini-2.0-flash';
+    const model = 'gemini-2.5-flash';
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
 
     // Extract MIME type and pure base64 data from the image string
     const match = base64Image.match(/^data:(image\/\w+);base64,(.*)$/);
@@ -22,12 +21,30 @@ async function detectFoodAndCalories(base64Image) {
     const mimeType = match[1];
     const base64Data = match[2];
 
+    const prompt = `
+    Hãy nhận diện món ăn trong hình và phân tích các yếu tố ảnh hưởng đến tiêu hóa của trẻ em.
+    Vui lòng trả về kết quả dưới dạng JSON thuần túy (không có markdown block) với cấu trúc sau:
+    {
+        "items": ["món ăn 1", "món ăn 2"],
+        "total_calories": xx,
+        "digestive_analysis": {
+            "fodmap_level": "Low/Medium/High",
+            "fiber_content": "Low/Medium/High",
+            "allergens": ["Gluten", "Lactose", "Nuts", "Soy", "None"],
+            "texture": "Soft/Crunchy/Mixed/Liquid",
+            "digestibility_score": 1-10 (10 là dễ tiêu hóa nhất),
+            "warnings": ["Cảnh báo 1", "Cảnh báo 2"]
+        }
+    }
+    Chỉ trả về JSON, không bao gồm nội dung khác.
+    `;
+
     const requestBody = {
         contents: [
             {
                 parts: [
                     {
-                        text: 'Hãy nhận diện món ăn trong hình và ước tính lượng calories. Vui lòng trả về nội dung theo cấu trúc JSON như sau. {"items": ["món ăn 1", "món ăn 2"], "total_calories": xx} Chỉ trả về JSON, không bao gồm nội dung khác.'
+                        text: prompt
                     },
                     {
                         inline_data: {
@@ -55,24 +72,39 @@ async function detectFoodAndCalories(base64Image) {
 
         const data = await response.json();
         const text = data.candidates[0].content.parts[0].text;
-        const regex = /\{.*?\}/s; // The 's' flag allows '.' to match newline characters
-        const match = text.match(regex);
+        const startIndex = text.indexOf('{');
+        const endIndex = text.lastIndexOf('}');
 
-        if (!match) {
+        if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
+            console.error('Raw response:', text);
             throw new Error('Không tìm thấy JSON hợp lệ trong phản hồi.');
         }
 
-        const jsonStr = match[0];
-        const parsedData = JSON.parse(jsonStr);
+        const jsonStr = text.substring(startIndex, endIndex + 1);
 
-        // Return the extracted items and total_calories from the parsed JSON
+        let parsedData;
+        try {
+            parsedData = JSON.parse(jsonStr);
+        } catch (e) {
+            console.error('JSON Parse Error:', e);
+            console.error('Raw JSON string:', jsonStr);
+            try {
+                const cleaned = jsonStr.replace(/```json/g, '').replace(/```/g, '');
+                parsedData = JSON.parse(cleaned);
+            } catch (e2) {
+                throw new Error(`JSON Parse error: ${e.message}`);
+            }
+        }
+
         return {
             items: parsedData.items,
-            count: parsedData.total_calories
+            count: parsedData.total_calories,
+            digestive_analysis: parsedData.digestive_analysis,
+            success: true
         };
     } catch (error) {
         console.error('API call failed:', error);
-        throw new Error(`Failed to detect food and calories: ${error.message}`);
+        throw new Error(`Failed to analyze food: ${error.message}`);
     }
 }
 
@@ -81,10 +113,10 @@ export default async function handler(req) {
     if (req.method === 'POST') {
         try {
             const { image } = await req.json(); // Parse the image from the POST request's body
-            const { items, count } = await detectFoodAndCalories(image);
+            const result = await detectFoodAndDigestiveInsights(image);
 
             // Create and return a successful response
-            return new Response(JSON.stringify({ items, count, success: true }), {
+            return new Response(JSON.stringify(result), {
                 headers: { 'Content-Type': 'application/json' },
                 status: 200
             });
