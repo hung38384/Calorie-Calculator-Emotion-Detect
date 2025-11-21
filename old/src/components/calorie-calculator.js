@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlertModal } from "@/components/model/alert";
-import { aggregateInsights } from "@/utils/foodInsights";
+import { aggregateInsights } from "../utils/foodInsights";
 import SymptomLogger from "@/components/SymptomLogger";
 import GrowthTracker from "@/components/GrowthTracker";
 import {
@@ -245,6 +245,29 @@ export const CalorieCalculatorPage = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {digestiveAnalysis.micronutrients && (
+                                <div className="grid grid-cols-3 gap-2 mb-4">
+                                    <div className="p-2 border border-base-200 rounded text-center">
+                                        <div className="text-xs text-base-content/60 font-bold">Sắt (Fe)</div>
+                                        <div className={`text-sm font-semibold ${digestiveAnalysis.micronutrients.iron === 'High' ? 'text-success' : 'text-base-content'}`}>
+                                            {digestiveAnalysis.micronutrients.iron}
+                                        </div>
+                                    </div>
+                                    <div className="p-2 border border-base-200 rounded text-center">
+                                        <div className="text-xs text-base-content/60 font-bold">Kẽm (Zn)</div>
+                                        <div className={`text-sm font-semibold ${digestiveAnalysis.micronutrients.zinc === 'High' ? 'text-success' : 'text-base-content'}`}>
+                                            {digestiveAnalysis.micronutrients.zinc}
+                                        </div>
+                                    </div>
+                                    <div className="p-2 border border-base-200 rounded text-center">
+                                        <div className="text-xs text-base-content/60 font-bold">Vit D</div>
+                                        <div className={`text-sm font-semibold ${digestiveAnalysis.micronutrients.vitamin_d === 'High' ? 'text-success' : 'text-base-content'}`}>
+                                            {digestiveAnalysis.micronutrients.vitamin_d}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {digestiveAnalysis.warnings && digestiveAnalysis.warnings.length > 0 && (
                                 <div className="alert alert-warning shadow-sm mb-4 text-sm py-2">

@@ -33,6 +33,11 @@ async function detectFoodAndDigestiveInsights(base64Image) {
             "allergens": ["Gluten", "Lactose", "Nuts", "Soy", "None"],
             "texture": "Soft/Crunchy/Mixed/Liquid",
             "digestibility_score": 1-10 (10 là dễ tiêu hóa nhất),
+            "micronutrients": {
+                "iron": "Low/Medium/High",
+                "zinc": "Low/Medium/High",
+                "vitamin_d": "Low/Medium/High"
+            },
             "warnings": ["Cảnh báo 1", "Cảnh báo 2"]
         }
     }
